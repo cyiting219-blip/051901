@@ -4,6 +4,7 @@ let imageModelURL = 'https://teachablemachine.withgoogle.com/models/xxxxxx/';
 let video;
 let flippedVideo;
 let label = "等待辨識...";
+let isVideoStarted = false; // 紀錄攝影機是否已經啟動
 
 function preload() {
   // 載入手勢影像分類模型
@@ -12,28 +13,38 @@ function preload() {
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
-  // 建立並啟動攝影機
-  video = createCapture(VIDEO);
-  video.size(640, 480);
-  video.hide();
 
-  // 進行鏡像翻轉，優化即時互動體驗
-  flippedVideo = ml5.flipImage(video);
-  classifyVideo();
+  // 綁定開始按鈕點擊事件，按下後才啟動攝影機
+  let startBtn = document.getElementById('start-btn');
+  if (startBtn) {
+    startBtn.addEventListener('click', () => {
+      // 隱藏開始畫面
+      document.getElementById('start-screen').classList.add('hidden');
+      
+      // 建立並啟動攝影機
+      video = createCapture(VIDEO, () => {
+        isVideoStarted = true;
+        flippedVideo = ml5.flipImage(video); // 先產生一次鏡像供分類器使用
+        classifyVideo();                     // 準備完畢後開始辨識
+      });
+      video.size(640, 480);
+      video.hide();
+    });
+  }
 }
 
 function draw() {
   background('#e7c6ff');
   
-  // 更新鏡像畫面
-  flippedVideo = ml5.flipImage(video);
-  
-  // 計算 50% 寬高與置中的 X/Y 座標
-  let imgW = width * 0.5;
-  let imgH = height * 0.5;
-  let imgX = (width - imgW) / 2;
-  let imgY = (height - imgH) / 2;
-  image(flippedVideo, imgX, imgY, imgW, imgH);
+  // 只有當攝影機已啟動，而且影片內容已經載入時，才繪製到畫布上
+  if (isVideoStarted && video.loadedmetadata) {
+    flippedVideo = ml5.flipImage(video);
+    let imgW = width * 0.5;
+    let imgH = height * 0.5;
+    let imgX = (width - imgW) / 2;
+    let imgY = (height - imgH) / 2;
+    image(flippedVideo, imgX, imgY, imgW, imgH);
+  }
 
   // 繪製辨識結果文字背景框
   fill(0, 0, 0, 160);
