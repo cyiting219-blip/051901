@@ -14,6 +14,10 @@ let computerChoice = "";
 let gameResult = "";
 let playAgainBtn;
 
+// --- MediaPipe Hands 變數 ---
+let hands;
+let handLandmarks = [];
+
 function preload() {
   classifier = ml5.imageClassifier(imageModelURL + 'model.json');
 }
@@ -35,10 +39,35 @@ function setup() {
     startBtn.addEventListener('click', startGame);
   }
 
+  // 建立並初始化 MediaPipe Hands 模型
+  hands = new Hands({locateFile: (file) => {
+    return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+  }});
+  hands.setOptions({
+    maxNumHands: 2,           // 最多辨識幾隻手
+    modelComplexity: 1,       // 模型複雜度
+    minDetectionConfidence: 0.5,
+    minTrackingConfidence: 0.5
+  });
+  // 當 MediaPipe 辨識完成後，將結果存入 handLandmarks 陣列
+  hands.onResults((results) => {
+    handLandmarks = results.multiHandLandmarks;
+  });
+
   // 網頁載入後立刻啟動攝影機，以便在開始畫面就能辨識手勢
   video = createCapture(VIDEO, () => {
     isVideoStarted = true;
     classifyVideo();
+    
+    // 初始化 MediaPipe Camera 自動傳送影像給 hands 模型
+    const camera = new Camera(video.elt, {
+      onFrame: async () => {
+        await hands.send({image: video.elt});
+      },
+      width: 640,
+      height: 480
+    });
+    camera.start();
   });
   video.hide();
 }
@@ -56,6 +85,38 @@ function draw() {
     translate(width, 0);
     scale(-1, 1);
     image(video, imgX, imgY, imgW, imgH);
+    
+    // --- 繪製藍色手部骨骼 ---
+    if (handLandmarks && handLandmarks.length > 0) {
+      const connections = [
+        [0, 1], [1, 2], [2, 3], [3, 4],
+        [0, 5], [5, 6], [6, 7], [7, 8],
+        [5, 9], [9, 10], [10, 11], [11, 12],
+        [9, 13], [13, 14], [14, 15], [15, 16],
+        [13, 17], [17, 18], [18, 19], [19, 20],
+        [0, 17]
+      ];
+
+      for (let i = 0; i < handLandmarks.length; i++) {
+        let landmarks = handLandmarks[i];
+
+        // 畫連線
+        stroke(0, 0, 255);
+        strokeWeight(4);
+        for (let j = 0; j < connections.length; j++) {
+          let pA = landmarks[connections[j][0]];
+          let pB = landmarks[connections[j][1]];
+          line(imgX + pA.x * imgW, imgY + pA.y * imgH, imgX + pB.x * imgW, imgY + pB.y * imgH);
+        }
+
+        // 畫關節點
+        fill(0, 0, 255);
+        noStroke();
+        for (let j = 0; j < landmarks.length; j++) {
+          circle(imgX + landmarks[j].x * imgW, imgY + landmarks[j].y * imgH, 10);
+        }
+      }
+    }
     pop();
   }
 
