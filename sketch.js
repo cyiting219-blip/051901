@@ -11,7 +11,7 @@ function preload() {
 }
 
 function setup() {
-  createCanvas(640, 480);
+  createCanvas(windowWidth, windowHeight);
   // 建立並啟動攝影機
   video = createCapture(VIDEO);
   video.size(640, 480);
@@ -23,11 +23,17 @@ function setup() {
 }
 
 function draw() {
-  background(0);
+  background('#e7c6ff');
   
   // 更新鏡像畫面
   flippedVideo = ml5.flipImage(video);
-  image(flippedVideo, 0, 0, width, height);
+  
+  // 計算 50% 寬高與置中的 X/Y 座標
+  let imgW = width * 0.5;
+  let imgH = height * 0.5;
+  let imgX = (width - imgW) / 2;
+  let imgY = (height - imgH) / 2;
+  image(flippedVideo, imgX, imgY, imgW, imgH);
 
   // 繪製辨識結果文字背景框
   fill(0, 0, 0, 160);
@@ -39,6 +45,11 @@ function draw() {
   textSize(30);
   textAlign(CENTER, CENTER);
   text("辨識結果: " + label, width / 2, height - 30);
+}
+
+// 當視窗大小改變時，自動調整畫布大小
+function windowResized() {
+  resizeCanvas(windowWidth, windowHeight);
 }
 
 // 傳送攝影機畫面至模型進行分類
