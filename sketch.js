@@ -1,8 +1,7 @@
 let classifier;
-// 請替換為您在 Teachable Machine 訓練好的模型網址路徑
+// ⚠️ 請務必替換為您在 Teachable Machine 訓練好並匯出上傳的真實網址路徑
 let imageModelURL = 'https://teachablemachine.withgoogle.com/models/xxxxxx/'; 
 let video;
-let flippedVideo;
 let label = "等待辨識...";
 let isVideoStarted = false; // 紀錄攝影機是否已經啟動
 
@@ -24,7 +23,6 @@ function setup() {
       // 建立並啟動攝影機
       video = createCapture(VIDEO, () => {
         isVideoStarted = true;
-        flippedVideo = ml5.flipImage(video); // 先產生一次鏡像供分類器使用
         classifyVideo();                     // 準備完畢後開始辨識
       });
       video.size(640, 480);
@@ -38,12 +36,17 @@ function draw() {
   
   // 只有當攝影機已啟動，而且影片內容已經載入時，才繪製到畫布上
   if (isVideoStarted && video.loadedmetadata) {
-    flippedVideo = ml5.flipImage(video);
     let imgW = width * 0.5;
     let imgH = height * 0.5;
     let imgX = (width - imgW) / 2;
     let imgY = (height - imgH) / 2;
-    image(flippedVideo, imgX, imgY, imgW, imgH);
+    
+    push();
+    // 利用 p5.js 原生方法將畫布水平翻轉，達成鏡像效果
+    translate(width, 0);
+    scale(-1, 1);
+    image(video, imgX, imgY, imgW, imgH);
+    pop();
   }
 
   // 繪製辨識結果文字背景框
@@ -65,7 +68,8 @@ function windowResized() {
 
 // 傳送攝影機畫面至模型進行分類
 function classifyVideo() {
-  classifier.classify(flippedVideo, gotResult);
+  // 直接將原生的 video 傳入分類器
+  classifier.classify(video, gotResult);
 }
 
 // 分類完成後的回呼函式
