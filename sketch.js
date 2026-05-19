@@ -6,7 +6,7 @@ let label = "等待辨識...";
 let isVideoStarted = false; 
 
 // --- 新增遊戲狀態變數 ---
-let gameState = 'READY'; // 'READY', 'COUNTDOWN', 'RESULT'
+let gameState = 'READY'; // 'READY', 'WAITING_FOR_GUN', 'COUNTDOWN', 'RESULT'
 let countdown = 3;
 let lastTime = 0;
 let playerChoice = "";
@@ -78,11 +78,23 @@ function draw() {
     // 若在遊戲進行中或結果畫面，比出「六」就強制結束遊戲，回到開始畫面
     if (label === '六' || label === '6') {
       endGame();
+    } else if (gameState === 'WAITING_FOR_GUN' && (label === '手槍' || label === '槍')) {
+      // 若正在等待開局，且辨識到手槍，就進入倒數狀態
+      gameState = 'COUNTDOWN';
+      countdown = 3;
+      lastTime = millis();
     }
   }
 
   // --- 遊戲邏輯與畫面繪製 ---
-  if (gameState === 'COUNTDOWN') {
+  if (gameState === 'WAITING_FOR_GUN') {
+    fill(0, 0, 0, 150);
+    rect(0, 0, width, height); // 半透明黑色背景
+    
+    fill(255);
+    textSize(40);
+    text("請比出「手槍」手勢來開始倒數", width / 2, height / 2);
+  } else if (gameState === 'COUNTDOWN') {
     fill(0, 0, 0, 150);
     rect(0, 0, width, height); // 半透明黑色背景
     
@@ -157,7 +169,7 @@ function startGame() {
   if (startScreen) {
       startScreen.classList.add('hidden');
   }
-  resetGame(); // 進入倒數狀態
+  resetGame(); // 進入等待比出手槍狀態
 }
 
 function endGame() {
@@ -192,8 +204,6 @@ function evaluateGame() {
 }
 
 function resetGame() {
-  gameState = 'COUNTDOWN';
-  countdown = 3;
-  lastTime = millis();
+  gameState = 'WAITING_FOR_GUN';
   playAgainBtn.hide();
 }
